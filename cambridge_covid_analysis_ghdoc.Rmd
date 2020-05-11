@@ -1,0 +1,417 @@
+---
+title: "COVID Analysis Cambridge"
+author: "Alexander Archibald"
+date: "11/05/2020"
+output: 
+  github_document:
+    dev: jpeg
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Air quality changes in Cambridge and COVID-19 lockdowns
+
+This document presents some analysis on the recent changes in air pollutants recorded by air quality monitoring sites across Cambridge. 
+
+Let's start by looking at where the data come from. 
+```{r, echo=F, warning=F, cache=TRUE, message=FALSE}
+library(openair)
+library(ggplot2)
+library(lubridate)
+library(dplyr)
+library(cowplot)
+library(ggmap)
+
+# need to add your own Google API key for making maps with Google maps!
+#register_google(key="")
+
+# import metadata 
+aqe_meta <- importMeta("aqe")
+aurn_meta <- importMeta("aurn")
+
+# find the locations of Cambridge data 
+aqe_sub <- aqe_meta[grep("Cambridge", aqe_meta$site), ]
+# also searching the AURN database
+aurn_sub <- aurn_meta[grep("Cambridge", aurn_meta$site), ]
+
+# plot on a map the locations.
+# first open up a Google map!
+camb <- get_map(location = c(lon = 0.13, lat = 52.2), zoom=14, scale=4)
+ggmap(camb) +
+  geom_point(data = aqe_sub, aes(x = longitude, y = latitude),
+             color = "red") + 
+  geom_point(data = aurn_sub[2,], aes(x = longitude, y = latitude),
+             color = "red") + 
+  ylab("Latitude (degrees)") +
+  xlab("Longitude (degrees")
+
+```
+
+The map above shows the locations of the air quality monitoring sites in Cambridge. They are:
+```{r, message=FALSE, warning=FALSE}
+print(aqe_sub)
+print(aurn_sub[2,])
+```
+
+Note, that the AURN site (Cambridge Roadside) is the Cambridge Council Building site on Regent Street. 
+
+## Analysis of the data over several years
+
+The DEFRA AURN site outside the Council offices on Regent Street has data for over a decade but the other sites on the map only have data available for analysis from 2014. 
+
+These data are plotted below for three main air pollutants:
+
+1) Nitrogen dioxide (NO$_2$). 
+This is a gaseous compound that comes from the combustion of fossil-fuels. It is very reactive in the atmosphere and has a lifetime of much less than a day. During the day sunlight breaks down NO$_2$ and at night time reactions with ozone (O$_3$) convert NO$_2$ into the nitrate radical (NO$_3$). 
+
+2) Particulate matter less than 10 microns in diameter (PM10)
+PM10 is an aerosol (a solid/liquid suspended in a gas) which comes from a large number of sources such as dust from roads, sea spray, combustion, construction work, break wear etc. PM10 tends to have a lifetim much longer than a day and gets washed out by things like rain. 
+
+3) Particulate matter less than 2.5 microns in diameter (PM2.5)
+PM2.5 is a very fine (small) aerosol. This has been shown through many epidemiological studies to be a very important air pollutant. Sources of PM2.5 include primary (direct emissions of particles) and secondary (conversion of gases to particles and sticking together of very small particles)
+
+```{r, echo=F, warning=F, cache=TRUE, message=FALSE}
+# there are a number of sites from the AQ England site
+# meta_data <- importMeta("aqe") # see the list here
+# let's just extract the Cambridge ones from the AQE and AURN networks
+p.street <- importAQE("cam1", year=2014:2020) # Parker Street
+g.place  <- importAQE("cam3", year=2014:2020) # Gonville Place
+mon.road <- importAQE("cam5", year=2014:2020) # Montague Road
+new.road <- importAQE("cam4", year=2014:2020) # Newmarket Road
+reg.street <- importAURN("cam", year=2014:2020) # Cambridge roadside (Regent Street)
+
+# now generate some daily averages
+p.street.d <- timeAverage(p.street, avg.time="day")
+g.place.d <- timeAverage(g.place, avg.time="day")
+mon.road.d <- timeAverage(mon.road, avg.time="day")
+new.road.d <- timeAverage(new.road, avg.time="day")
+reg.street.d <- timeAverage(reg.street, avg.time="day")
+
+# now generate some weekly averages
+p.street.w <- timeAverage(p.street, avg.time="week")
+g.place.w <- timeAverage(g.place, avg.time="week")
+mon.road.w <- timeAverage(mon.road, avg.time="week")
+new.road.w <- timeAverage(new.road, avg.time="week")
+reg.street.w <- timeAverage(reg.street, avg.time="week")
+
+# now generate some monthly averages
+p.street.m <- timeAverage(p.street, avg.time="month")
+g.place.m <- timeAverage(g.place, avg.time="month")
+mon.road.m <- timeAverage(mon.road, avg.time="month")
+new.road.m <- timeAverage(new.road, avg.time="month")
+reg.street.m <- timeAverage(reg.street, avg.time="month")
+
+# now summarize the daily average data to get a climatology (mean + sd)
+p.street_climatology <- p.street.d %>%
+  group_by(month = month(date)) %>%
+  filter(date > as.POSIXlt("2017-01-01") & date < as.POSIXct("2020-01-01")) %>%
+  summarize(avg_no2 = mean(no2, na.rm=T), 
+            sd_no2 = sd(no2, na.rm=T), 
+            avg_pm10 = mean(pm10, na.rm=T), 
+            sd_pm10 = sd(pm10, na.rm=T)) 
+
+# now add in a column in POSIXct date time class for plotting
+p.street_climatology$date <- seq(as.POSIXct("2020-01-01 00:00:00", 
+                                          format="%Y-%m-%d %H:%M:%S", tz="GMT"), by="month", length.out=12)
+
+g.place_climatology <- g.place.d %>%
+  group_by(month = month(date)) %>%
+  filter(date > as.POSIXlt("2017-01-01") & date < as.POSIXct("2020-01-01")) %>%
+  summarize(avg_no2 = mean(no2, na.rm=T), 
+            sd_no2 = sd(no2, na.rm=T), 
+            avg_pm10 = mean(pm10, na.rm=T), 
+            sd_pm10 = sd(pm10, na.rm=T),
+            avg_pm2.5 = mean(pm2.5, na.rm=T), 
+            sd_pm2.5 = sd(pm2.5, na.rm=T)) 
+
+# now add in a column in POSIXct date time class for plotting
+g.place_climatology$date <- seq(as.POSIXct("2020-01-01 00:00:00", 
+                                            format="%Y-%m-%d %H:%M:%S", tz="GMT"), by="month", length.out=12)
+
+mon.road_climatology <- mon.road.d %>%
+  group_by(month = month(date)) %>%
+  filter(date > as.POSIXlt("2017-01-01") & date < as.POSIXct("2020-01-01")) %>%
+  summarize(avg_no2 = mean(no2, na.rm=T), 
+            sd_no2 = sd(no2, na.rm=T), 
+            avg_pm10 = mean(pm10, na.rm=T), 
+            sd_pm10 = sd(pm10, na.rm=T)) 
+
+# now add in a column in POSIXct date time class for plotting
+mon.road_climatology$date <- seq(as.POSIXct("2020-01-01 00:00:00", 
+                                            format="%Y-%m-%d %H:%M:%S", tz="GMT"), by="month", length.out=12)
+
+new.road_climatology <- new.road.d %>%
+  group_by(month = month(date)) %>%
+  filter(date > as.POSIXlt("2017-01-01") & date < as.POSIXct("2020-01-01")) %>%
+  summarize(avg_no2 = mean(no2, na.rm=T), 
+            sd_no2 = sd(no2, na.rm=T), 
+            avg_pm2.5 = mean(pm2.5, na.rm=T), 
+            sd_pm2.5 = sd(pm2.5, na.rm=T)) 
+
+# now add in a column in POSIXct date time class for plotting
+new.road_climatology$date <- seq(as.POSIXct("2020-01-01 00:00:00", 
+                                            format="%Y-%m-%d %H:%M:%S", tz="GMT"), by="month", length.out=12)
+
+reg.street_climatology <- reg.street.d %>%
+  group_by(month = month(date)) %>%
+  filter(date > as.POSIXlt("2017-01-01") & date < as.POSIXct("2020-01-01")) %>%
+  summarize(avg_no2 = mean(no2, na.rm=T), 
+            sd_no2 = sd(no2, na.rm=T)) 
+
+# now add in a column in POSIXct date time class for plotting
+reg.street_climatology$date <- seq(as.POSIXct("2020-01-01 00:00:00", 
+                                            format="%Y-%m-%d %H:%M:%S", tz="GMT"), by="month", length.out=12)
+
+# now we want to analyse some of the changes. 
+# we will need to set some start and end dates
+start_date <- as.POSIXct("2020-01-01 00:00:00", format="%Y-%m-%d %H:%M:%S", tz="GMT")
+lockdown_start <- as.POSIXct("2020-03-23 00:00:00", format="%Y-%m-%d %H:%M:%S", tz="GMT")
+end_date <- as.POSIXct("2020-05-08 00:00:00", format="%Y-%m-%d %H:%M:%S", tz="GMT")
+mid_date <- as.POSIXct("2020-04-15 00:00:00", format="%Y-%m-%d %H:%M:%S", tz="GMT")
+
+
+############### plottting -- full data sets
+##################### weekly data 
+# weekly NO2 plots
+p2 <- ggplot(p.street.w, aes(x=date, y=no2)) +
+  geom_line() + 
+  scale_x_datetime(limit=c(as.POSIXct("2014-01-01"), end_date)) +
+  xlab("") + 
+  ylim(0, 75) +
+  ylab(bquote("Nitrogen dioxide ("*mu~"g/"~m^3~")" )) +
+  geom_line(data=g.place.w, aes(x=date, y=no2), color="red") + 
+  geom_line(data=mon.road.w, aes(x=date, y=no2), color="blue") + 
+  geom_line(data=new.road.w, aes(x=date, y=no2), color="orange") + 
+  geom_line(data=reg.street.w, aes(x=date, y=no2), color="purple") +
+  geom_smooth(data=g.place.w, aes(x=date, y=no2), color="red", 
+                 method = "loess") + 
+  geom_smooth(data=new.road.w, aes(x=date, y=no2), color="orange", 
+              method = "loess") + 
+  geom_smooth(data=mon.road.w, aes(x=date, y=no2), color="blue", 
+              method = "loess") + 
+  geom_smooth(data=p.street.w, aes(x=date, y=no2), color="black", 
+              method = "loess") + 
+  geom_smooth(data=reg.street.w, aes(x=date, y=no2), color="purple", 
+              method = "loess") + 
+  annotate(geom="text", x=mid_date, y=70, label="Montague Road",
+           color="blue") + 
+  annotate(geom="text", x=mid_date, y=65, label="Newmarket Road",
+           color="orange") +
+  annotate(geom="text", x=mid_date, y=60, label="Parker Street",
+           color="black") +
+  annotate(geom="text", x=mid_date, y=55, label="Regent Street",
+           color="purple") +
+  annotate(geom="text", x=mid_date, y=50, label="Gonville Place",
+           color="red") + 
+  ggtitle("Nitrogen dioxide across Cambridge (weekly averages)  @aTarchie") 
+
+print(p2)
+
+```
+
+The long term time-series for NO$_2$ is shown above. A few key points stick out:
+
+1) Parker Street has the heighest levels of NO$_2$ measured in Cambridge. 
+
+2) There has been a long term decrease in NO$_2$ in Cambridge over time. 
+
+3) There is significant variability in NO$_2$ from week to week (the spikes in the data). 
+
+In the plots above weekly-average data are shown with a smoothed running average (LOESS) added to highlight trends. If you stare at the data you will see that there is a repeating seasonal-cycle, where NO$_2$ levels peak in the winter and drop to a minimum in the summer. This type of behaviour is very typical for NO$_2$ and is seen in most places around the world. The causes are a combination of meteorology and chemistry. 
+
+The downwards trends in NO$_2$ are likely to be driven by emission changes, particularly related to vechicle fleet changes and better catalytic converters in vehicles. 
+
+```{r, echo=F, warning=F, message=FALSE}
+p3 <- ggplot(p.street.w, aes(x=date, y=pm10)) +
+  geom_line() + 
+  scale_x_datetime(limit=c(as.POSIXct("2014-01-01"), end_date)) +
+  xlab("") + 
+  ylim(0, 70) +
+  ylab(bquote("PM10 ("*mu~"g/"~m^3~")" )) +
+  geom_line(data=g.place.w, aes(x=date, y=pm10), color="red") + 
+  geom_line(data=mon.road.w, aes(x=date, y=pm10), color="blue") +
+  geom_smooth(data=g.place.w, aes(x=date, y=pm10), color="red", 
+              method = "loess") + 
+  geom_smooth(data=mon.road.w, aes(x=date, y=pm10), color="blue", 
+              method = "loess") + 
+  geom_smooth(data=p.street.w, aes(x=date, y=pm10), color="black", 
+              method = "loess") + 
+  annotate(geom="text", x=mid_date, y=55, label="Montague Road",
+           color="blue") + 
+  annotate(geom="text", x=mid_date, y=50, label="Parker Street",
+           color="black") +
+  annotate(geom="text", x=mid_date, y=45, label="Gonville Place",
+           color="red") + 
+  ggtitle("PM10 across Cambridge (weekly averages)  @aTarchie") 
+
+print(p3)
+
+
+```
+
+
+The plot above shows the trends in PM10 since 2014. As with the NO$_2$ time-series plot, there are some trends (shown in the smoothed fits) but these are much smaller than with NO$_2$. 
+
+There are fewer sites measuring PM10 than NO$_2$ but the sites that measure PM10 tend to agree on the tiimg of spikes in the data. This partly reflects the long lifetime of PM10 and the fact that the sources of PM10 are not local (unlike NO$_2$ which has major local sources, particular vehicle emissions). 
+
+```{r, echo=F, warning=F, message=FALSE}
+p4 <- ggplot(new.road.w, aes(x=date, y=pm2.5)) +
+  geom_line(colour="orange") + 
+  scale_x_datetime(limit=c(as.POSIXct("2014-01-01"), end_date)) +
+  xlab("") + 
+  ylim(0, 60) +
+  ylab(bquote("PM2.5 ("*mu~"g/"~m^3~")" )) +
+  geom_line(data=g.place.w, aes(x=date, y=pm2.5), color="red") +
+  geom_smooth(data=g.place.w, aes(x=date, y=pm2.5), color="red", 
+              method = "loess") + 
+  geom_smooth(data=new.road.w, aes(x=date, y=pm2.5), color="orange", 
+              method = "loess") + 
+  annotate(geom="text", x=mid_date, y=45, label="Newmarket Road",
+           color="orange") +
+  annotate(geom="text", x=mid_date, y=40, label="Gonville Place",
+           color="red") + 
+  ggtitle("PM2.5 across Cambridge (weekly averages)  @aTarchie") 
+
+print(p4)
+```
+
+
+Finally, the plot above focuses on the finer aerosol, PM2.5. In general the picture is similar to the picture with PM10 in that the sites that measure PM2.5 show high levels of correlation in time -- highlighting the importance of sources of PM2.5 away from the measurement sites. 
+
+
+Next we focus on the changes that have occured in 2020 -- particulalrly during the COVID-19 lockdown period. 
+
+## Changes in air quality during the lockdown
+```{r, echo=F, warning=F, message=FALSE}
+gen_no2_covid_plot <- function(data_set, climatology, site.name, col2plot) {
+  # function for generating a time series comparison of this years 
+  # daily data against a climatology
+  p3 <- ggplot() + 
+    # plot the climatology and its uncertainty
+    geom_line(data=climatology, aes(x=date, y = avg_no2)) +
+    geom_ribbon(data=climatology, aes(x=date, ymin=avg_no2-sd_no2, 
+                                               ymax=avg_no2+sd_no2), fill="gray30", 
+                alpha=0.2) + 
+    # add in this years data
+    geom_line(data=data_set, mapping=aes(x=date, y=no2), colour=col2plot) +
+    scale_x_datetime(limit=c(start_date, end_date)) +
+    xlab("") + 
+    ylim(0, 75) +
+    ylab(bquote("Nitrogen dioxide ("*mu~"g/"~m^3~")" )) +
+    #ggtitle(paste("Nitrogen dioxide at", site.name, " (daily averages)         @aTarchie")) + 
+    annotate(geom="text", x=mid_date, y=60, label=site.name,
+             color=col2plot) + 
+    annotate(geom="text", x=mid_date, y=55, label="2017-19 (mean±sd)",
+             color="black") +
+    geom_vline(xintercept = lockdown_start, linetype="dashed", col="darkgray")
+  
+  p3
+}
+
+gen_pm10_covid_plot <- function(data_set, climatology, site.name, col2plot) {
+  # function for generating a time series comparison of this years 
+  # daily data against a climatology
+  p4 <- ggplot() + 
+    # plot the climatology and its uncertainty
+    geom_line(data=climatology, aes(x=date, y = avg_pm10)) +
+    geom_ribbon(data=climatology, aes(x=date, ymin=avg_pm10-sd_pm10, 
+                                      ymax=avg_pm10+sd_pm10), fill="gray30", 
+                alpha=0.2) + 
+    # add in this years data
+    geom_line(data=data_set, mapping=aes(x=date, y=pm10), colour=col2plot) +
+    scale_x_datetime(limit=c(start_date, end_date)) +
+    xlab("") + 
+    ylim(0, 75) +
+    ylab(bquote("PM10 ("*mu~"g/"~m^3~")" )) +
+    annotate(geom="text", x=mid_date, y=60, label=site.name,
+             color=col2plot) + 
+    annotate(geom="text", x=mid_date, y=55, label="2017-19 (mean±sd)",
+             color="black") +
+    geom_vline(xintercept = lockdown_start, linetype="dashed", col="darkgray")
+  
+  p4
+}
+
+gen_pm2.5_covid_plot <- function(data_set, climatology, site.name, col2plot) {
+  # function for generating a time series comparison of this years 
+  # daily data against a climatology
+  p5 <- ggplot() + 
+    # plot the climatology and its uncertainty
+    geom_line(data=climatology, aes(x=date, y = avg_pm2.5)) +
+    geom_ribbon(data=climatology, aes(x=date, ymin=avg_pm2.5-sd_pm2.5, 
+                                      ymax=avg_pm2.5+sd_pm2.5), fill="gray30", 
+                alpha=0.2) + 
+    # add in this years data
+    geom_line(data=data_set, mapping=aes(x=date, y=pm2.5), colour=col2plot) +
+    scale_x_datetime(limit=c(start_date, end_date)) +
+    xlab("") + 
+    ylim(0, 75) +
+    ylab(bquote("PM2.5 ("*mu~"g/"~m^3~")" )) +
+    annotate(geom="text", x=mid_date, y=60, label=site.name,
+             color=col2plot) + 
+    annotate(geom="text", x=mid_date, y=55, label="2017-19 (mean±sd)",
+             color="black") +
+    geom_vline(xintercept = lockdown_start, linetype="dashed", col="darkgray")
+  
+  p5
+}
+
+# now combine the plots for each station
+# NO2
+no2_mon.road <- gen_no2_covid_plot(mon.road.d, mon.road_climatology,
+                                   "Montague Road", "blue")
+no2_new.road <- gen_no2_covid_plot(new.road.d, new.road_climatology,
+                                   "Newmarket Road", "orange")
+no2_p.street <- gen_no2_covid_plot(p.street.d, p.street_climatology,
+                                   "Parker Street", "black")
+no2_reg.street <- gen_no2_covid_plot(reg.street.d, reg.street_climatology,
+                                   "Regent Street", "purple")
+no2_gon.place <- gen_no2_covid_plot(g.place.d, g.place_climatology,
+                                   "Gonville Place", "red")
+
+print(no2_mon.road)
+print(no2_new.road)
+print(no2_p.street)
+print(no2_reg.street)
+print(no2_gon.place)
+```
+
+
+First let's look at the changes in NO$_2$ during the lockdown. The plots above show NO$_2$ at each of the sites that measure it during 2020 and compare the daily average values (the noisy lines) with the average you would expect based on analysis of data from 2017-2019 (three years). 
+
+- Why compare against these three years? Well, firstly they are the most recent three year period. 
+- Secondly, by averaging over three years we eliminate large fluctuations that happen because of changes in meteorology from year to year. 
+
+
+
+```{r, echo=F, warning=F, message=FALSE}
+# PM10
+pm10_mon.road <- gen_pm10_covid_plot(mon.road.d, mon.road_climatology, 
+                                     "Montague Road", "blue")
+pm10_p.street <- gen_pm10_covid_plot(p.street.d, p.street_climatology, 
+                                     "Parker Street", "black")
+pm10_gon.place <- gen_pm10_covid_plot(g.place.d, g.place_climatology, 
+                                      "Gonville Place", "red")
+
+print(pm10_mon.road)
+print(pm10_p.street)
+print(pm10_gon.place)
+```
+
+```{r, echo=F, warning=FALSE, message=FALSE}
+# PM2.5
+pm2.5_new.road <- gen_pm2.5_covid_plot(new.road.d, new.road_climatology, 
+                                     "Newmarket Road", "orange")
+pm2.5_gon.place <- gen_pm2.5_covid_plot(g.place.d, g.place_climatology, 
+                                      "Gonville Place", "red")
+print(pm2.5_new.road)
+print(pm2.5_gon.place)
+
+
+```
+
+
+
