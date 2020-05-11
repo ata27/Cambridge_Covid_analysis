@@ -23,7 +23,7 @@ library(cowplot)
 library(ggmap)
 
 # need to add your own Google API key for making maps with Google maps!
-register_google(key="AIzaSyB7IRlPwGVXC75U0XzUaun49TRgv9ITn7w")
+#register_google(key="")
 
 # import metadata 
 aqe_meta <- importMeta("aqe")
