@@ -221,7 +221,7 @@ In the plots above weekly-average data are shown with a smoothed running average
 
 The downwards trends in NO$_2$ are likely to be driven by emission changes, particularly related to vechicle fleet changes and better catalytic converters in vehicles. 
 
-```{r, echo=F, warning=F}
+```{r, echo=F, warning=F, message=FALSE}
 p3 <- ggplot(p.street.w, aes(x=date, y=pm10)) +
   geom_line() + 
   scale_x_datetime(limit=c(as.POSIXct("2014-01-01"), end_date)) +
@@ -254,7 +254,7 @@ The plot above shows the trends in PM10 since 2014. As with the NO$_2$ time-seri
 
 There are fewer sites measuring PM10 than NO$_2$ but the sites that measure PM10 tend to agree on the tiimg of spikes in the data. This partly reflects the long lifetime of PM10 and the fact that the sources of PM10 are not local (unlike NO$_2$ which has major local sources, particular vehicle emissions). 
 
-```{r, echo=F, warning=F}
+```{r, echo=F, warning=F, message=FALSE}
 p4 <- ggplot(new.road.w, aes(x=date, y=pm2.5)) +
   geom_line(colour="orange") + 
   scale_x_datetime(limit=c(as.POSIXct("2014-01-01"), end_date)) +
@@ -282,7 +282,7 @@ Finally, the plot above focuses on the finer aerosol, PM2.5. In general the pict
 Next we focus on the changes that have occured in 2020 -- particulalrly during the COVID-19 lockdown period. 
 
 ## Changes in air quality during the lockdown
-```{r, echo=F, warning=F}
+```{r, echo=F, warning=F, message=FALSE}
 gen_no2_covid_plot <- function(data_set, climatology, site.name, col2plot) {
   # function for generating a time series comparison of this years 
   # daily data against a climatology
@@ -384,7 +384,7 @@ First let's look at the changes in NO$_2$ during the lockdown. The plots above s
 
 
 
-```{r, echo=F, warning=F}
+```{r, echo=F, warning=F, message=FALSE}
 # PM10
 pm10_mon.road <- gen_pm10_covid_plot(mon.road.d, mon.road_climatology, 
                                      "Montague Road", "blue")
@@ -398,7 +398,7 @@ print(pm10_p.street)
 print(pm10_gon.place)
 ```
 
-```{r, echo=F, warning=FALSE}
+```{r, echo=F, warning=FALSE, message=FALSE}
 # PM2.5
 pm2.5_new.road <- gen_pm2.5_covid_plot(new.road.d, new.road_climatology, 
                                      "Newmarket Road", "orange")
