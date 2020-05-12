@@ -430,4 +430,13 @@ print(pm2.5_gon.place)
 Finally we look at the changes in PM2.5 over the last year. There are even fewer sites which monitor PM2.5 than PM10 but as with the coarser aerosol, this fine aerosol shows limited changed after the lockdown for generally the same reasons as with PM10: sources of PM2.5 tend not to be vehicles/transport and so there has been less of an effecct of the lockdown on this species. 
 
 
+## Data sources
+
+The data presented here came from the Air Quality England (AQE) database (https://www.airqualityengland.co.uk/) and the DEFRA Automatic Urban and Rural Network (AURN) (https://uk-air.defra.gov.uk/data/). 
+
+Data were analysed using the *fantastic* R library -- openair ! Huge thanks to David Carslaw and collaborators for developing this! 
+
+Plots were generated in R using ggplot2 and big thanks to all the developers of the libraries used (please see the source code). 
+
+Please do feel free to modify this and look at your own town or cities data! I'd be very keen to hear from you if you find anything interesting or would like some help interpreting the data -- ata27 at cam dot ac dot uk
 
