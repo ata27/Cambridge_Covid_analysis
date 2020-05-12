@@ -384,13 +384,15 @@ print(no2_reg.street)
 print(no2_gon.place)
 ```
 
-
+## NO$_2$ analysis
 First let's look at the changes in NO$_2$ during the lockdown. The plots above show NO$_2$ at each of the sites that measure it during 2020 and compare the daily average values (the noisy lines) with the average you would expect based on analysis of data from 2017-2019 (three years). 
 
-- Why compare against these three years? Well, firstly they are the most recent three year period. 
+- Why compare against these three years? Well, firstly they are the most recent three year period. As the Figure near the top shows, there have been signifciant downward trends in NO$_2$ over the last seven years and so by looking at the most recent years we avoid the periods with generally higher NO$_2$ levels. 
 - Secondly, by averaging over three years we eliminate large fluctuations that happen because of changes in meteorology from year to year. 
 
+The general picture of the changes is clear, in that post lockdown (to the right of the dashed vertical line -- March 23rd) the levels of NO$_2$ have deccreased. The average seasonal cycle of NO$_2$ shows a decrease in the summer, however, the decreases observed are much larger than what is expected based on comparison with the average data from the last three years. 
 
+The largest changes have occured near the very traffic dominated sites, like Parker Street and Regent Street. 
 
 ```{r, echo=F, warning=F, message=FALSE}
 # PM10
@@ -406,6 +408,12 @@ print(pm10_p.street)
 print(pm10_gon.place)
 ```
 
+## PM10 analysis 
+However, when looking at PM10 there is very little clear change in this compound acrosss Cambridge. There are fewer sites which measure PM10 but they show that most of the changes in PM10 fall within the variability of the last three years (i.e. these data lie within the grey envelope). 
+
+**Why is there less of a change in PM10 than NO$_2$?**
+- One reason for the smaller changes in PM10 than NO$_2$ during the lockdown is that the lockdown has mainly had an impact on things like the number of vehicles driving around -- this has a direct impact on NO$_2$ as vehicles are the major source of NO$_2$. However, PM10 comes from a wide range of sources other than transport/vehicles. For example, agriculture tends to be a source and there has been little evidence for large reductions in agricultural activity. 
+
 ```{r, echo=F, warning=FALSE, message=FALSE}
 # PM2.5
 pm2.5_new.road <- gen_pm2.5_covid_plot(new.road.d, new.road_climatology, 
@@ -417,6 +425,9 @@ print(pm2.5_gon.place)
 
 
 ```
+
+## PM2.5
+Finally we look at the changes in PM2.5 over the last year. There are even fewer sites which monitor PM2.5 than PM10 but as with the coarser aerosol, this fine aerosol shows limited changed after the lockdown for generally the same reasons as with PM10: sources of PM2.5 tend not to be vehicles/transport and so there has been less of an effecct of the lockdown on this species. 
 
 
 
