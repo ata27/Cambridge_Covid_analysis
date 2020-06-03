@@ -173,7 +173,7 @@ reg.street_climatology$date <- seq(as.POSIXct("2020-01-01 00:00:00",
 # we will need to set some start and end dates
 start_date <- as.POSIXct("2020-01-01 00:00:00", format="%Y-%m-%d %H:%M:%S", tz="GMT")
 lockdown_start <- as.POSIXct("2020-03-23 00:00:00", format="%Y-%m-%d %H:%M:%S", tz="GMT")
-end_date <- as.POSIXct("2020-05-08 00:00:00", format="%Y-%m-%d %H:%M:%S", tz="GMT")
+end_date <- as.POSIXct("2020-06-01 00:00:00", format="%Y-%m-%d %H:%M:%S", tz="GMT")
 mid_date <- as.POSIXct("2020-04-15 00:00:00", format="%Y-%m-%d %H:%M:%S", tz="GMT")
 
 
